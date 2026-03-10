@@ -18,3 +18,12 @@ allprojects {
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
+
+// Redirect JitPack tasks to the tracker project
+task publishToMavenLocal {
+    dependsOn ':tracker:publishToMavenLocal'
+}
+
+task install {
+    dependsOn ':tracker:publishToMavenLocal'
+}
