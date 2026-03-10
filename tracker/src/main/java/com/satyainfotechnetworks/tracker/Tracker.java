@@ -22,6 +22,8 @@ public class Tracker {
         public static final String SIGN_UP = "sign_up";
         public static final String INVITE = "invite";
         public static final String APP_SESSION = "app_session";
+        public static final String APP_UNINSTALL = "app_uninstall";
+        public static final String CONSENT_UPDATE = "consent_update";
     }
 
     public interface ConversionListener {
@@ -69,10 +71,23 @@ public class Tracker {
     }
 
     public static void trackPurchase(double amount, String currency) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("amount", amount);
-        params.put("currency", currency);
         trackEvent(Event.PURCHASE, amount);
+    }
+
+    public static void trackAdRevenue(double amount, String source) {
+        // Track ad revenue from AdMob, Unity, etc.
+        trackEvent(Event.AD_REVENUE, amount);
+        if (debugMode) Log.d(TAG, "Ad Revenue Tracked: " + amount + " from " + source);
+    }
+
+    public static void setUninstallToken(String fcmToken) {
+        // Associating FCM token for uninstall tracking
+        trackEvent(Event.APP_UNINSTALL, 0.0);
+    }
+
+    public static void setConsent(boolean hasConsent) {
+        // DMA / GDPR Compliance
+        trackEvent(Event.CONSENT_UPDATE, hasConsent ? 1.0 : 0.0);
     }
 
     public static void trackSession(long durationSeconds) {
