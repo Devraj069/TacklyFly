@@ -119,44 +119,63 @@ public class Tracker {
         referrerClient.startConnection(new InstallReferrerStateListener() {
             @Override
             public void onInstallReferrerSetupFinished(int responseCode) {
-                        break;
+                if (responseCode == InstallReferrerClient.InstallReferrerResponseCode.OK) {
+                    try {
+                        ReferrerDetails response = referrerClient.getInstallReferrer();
+                        String referrerUrl = response.getInstallReferrer();
+                        sendInstallData(referrerUrl);
+                        referrerClient.endConnection();
+                    } catch (Exception e) {
+                        if (debugMode) Log.e(TAG, "Referrer Error: " + e.getMessage());
+                        sendInstallData(null);
+                    }
+                } else {
+                    sendInstallData(null);
                 }
             }
 
             @Override
-            public void onInstallReferrerServiceDisconnected() {
-                // Try again if needed
-            }
+            public void onInstallReferrerServiceDisconnected() {}
         });
     }
 
-    private static void sendInstallToServer(final String clickId, final long timestamp) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    URL url = new URL(backendUrl + "/install");
-                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                    conn.setRequestMethod("POST");
-                    conn.setRequestProperty("Content-Type", "application/json; utf-8");
-                    conn.setDoOutput(true);
+    private static void sendInstallData(final String referrerUrl) {
+        new Thread(() -> {
+            try {
+                URL url = new URL(backendUrl + "/install");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setDoOutput(true);
 
-                    JSONObject json = new JSONObject();
-                    json.put("sdkKey", sdkKey);
-                    json.put("deviceId", deviceId);
+                JSONObject json = new JSONObject();
+                json.put("sdkKey", sdkKey);
+                json.put("deviceId", deviceId);
+                json.put("installTimestamp", System.currentTimeMillis());
+
+                String clickId = null;
+                if (referrerUrl != null && referrerUrl.contains("click_id=")) {
+                    clickId = referrerUrl.split("click_id=")[1].split("&")[0];
                     json.put("clickId", clickId);
-                    json.put("installTimestamp", timestamp);
-
-                    try (OutputStream os = conn.getOutputStream()) {
-                        byte[] input = json.toString().getBytes("utf-8");
-                        os.write(input, 0, input.length);
-                    }
-
-                    int code = conn.getResponseCode();
-                    Log.d(TAG, "Install tracked, Response: " + code);
-                } catch (Exception e) {
-                    Log.e(TAG, "Failed to track install", e);
                 }
+
+                OutputStream os = conn.getOutputStream();
+                os.write(json.toString().getBytes());
+                os.flush();
+                os.close();
+
+                int code = conn.getResponseCode();
+                if (code == 200 && conversionListener != null) {
+                    Map<String, String> data = new HashMap<>();
+                    data.put("status", clickId != null ? "Non-Organic" : "Organic");
+                    data.put("clickId", clickId != null ? clickId : "none");
+                    conversionListener.onConversionDataSuccess(data);
+                }
+                
+                if (debugMode) Log.d(TAG, "Install Sent. Resp: " + code);
+                conn.disconnect();
+            } catch (Exception e) {
+                if (debugMode && conversionListener != null) conversionListener.onConversionDataFail(e.getMessage());
             }
         }).start();
     }
