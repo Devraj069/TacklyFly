@@ -119,7 +119,7 @@ public class Tracker {
         referrerClient.startConnection(new InstallReferrerStateListener() {
             @Override
             public void onInstallReferrerSetupFinished(int responseCode) {
-                if (responseCode == InstallReferrerClient.InstallReferrerResponseCode.OK) {
+                if (responseCode == InstallReferrerClient.InstallReferrerResponse.OK) {
                     try {
                         ReferrerDetails response = referrerClient.getInstallReferrer();
                         String referrerUrl = response.getInstallReferrer();
