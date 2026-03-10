@@ -37,7 +37,7 @@ public class Tracker {
     private static String appPackage;
     private static String externalUserId;
     private static boolean debugMode = false;
-    private static String backendUrl = "https://tracker.satyainfotechnetworks.com/api";
+    private static String backendUrl = "https://trackyfly.satyainfotechnetworks.com/api";
     private static ConversionListener conversionListener;
 
     public static void init(Context context, String key) {
